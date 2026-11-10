@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dice-cise Obes</title>
+<meta name="description" content="Permainan teka perkataan + senaman untuk sesi fisioterapi.">
+<meta name="theme-color" content="#1b1446">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+
+<script>
+/* =====================================================================
+   CONFIG — edit perkataan & senaman di sini sahaja.
+   - categories: setiap kategori ada label, ikon, warna & senarai perkataan
+     (HURUF BESAR, A–Z dan ruang sahaja).
+   - exercises: 10 muka Dadu Senaman. timed:true = dikira dalam saat.
+   ===================================================================== */
+const CONFIG = {
+  maxReps: 15,            // had maksimum reps
+  secondsPerRep: 2,       // senaman berasaskan masa: reps × 2 saat
+  vowels: "AEIOU",
+  categories: [
+    { id: "kenderaan", label: "Kenderaan", icon: "🚗", color: "#ff5d73",
+      words: ["KERETA","BAS","LORI","TEKSI","BASIKAL","MOTOSIKAL","BECA","FERI","SAMPAN",
+              "HELIKOPTER","AMBULANS","KAPAL TERBANG","KERETA API","KAPAL LAYAR",
+              "BOT LAJU","KERETA LEMBU","KERETA KEBAL","BAS SEKOLAH"] },
+    { id: "makanan", label: "Makanan", icon: "🍛", color: "#ffb627",
+      words: ["SATAY","LAKSA","RENDANG","CENDOL","KETUPAT","LEMANG","ROJAK","KARIPAP","DODOL",
+              "NASI LEMAK","ROTI CANAI","TEH TARIK","MEE GORENG","NASI KANDAR",
+              "APAM BALIK","ASAM PEDAS","KUIH LAPIS","PISANG GORENG"] },
+    { id: "tempat", label: "Tempat", icon: "🏙️", color: "#2ec4b6",
+      words: ["MELAKA","LANGKAWI","IPOH","KUCHING","SABAH","PUTRAJAYA","MASJID","HOSPITAL",
+              "SEKOLAH","PANTAI","KUALA LUMPUR","PULAU PINANG","GUNUNG KINABALU",
+              "PASAR MALAM","KEDAI MAMAK","STESEN BAS","TASIK KENYIR","BUKIT BINTANG"] },
+    { id: "personaliti", label: "Personaliti", icon: "🌟", color: "#9b5de5",
+      words: ["SUDIRMAN","MAWI","LAT","AZIZULHASNI","SITI NURHALIZA","LEE CHONG WEI",
+              "NICOL DAVID","P RAMLEE","MICHELLE YEOH","JIMMY CHOO","HANG TUAH","MAT KILAU",
+              "ZIANA ZAIN","TUN RAZAK","UPIN IPIN","SALEH YAAKOB","PANDELELA RINONG"] },
+    { id: "objek", label: "Objek", icon: "🎒", color: "#3a86ff",
+      words: ["PAYUNG","KIPAS","CERMIN","BANTAL","KERUSI","MEJA","KASUT","TELEFON","SUDU",
+              "PINGGAN","LAMPU","KUNCI","SELIPAR","JAM DINDING","BEG SEKOLAH","PERIUK NASI",
+              "TUDUNG SAJI","BOTOL AIR"] }
+  ],
+  exercises: [
+    { id: "squat", name: "Squat", icon: "🏋️", timed: false,
+      cues: ["Kaki selebar bahu, jari kaki halakan ke depan.",
+             "Tolak punggung ke belakang macam nak duduk, dada kekal tegak.",
+             "Lutut ikut arah jari kaki — jangan masuk ke dalam."],
+      tip: "Squat ke kerusi: turun sampai punggung sentuh kerusi, kemudian bangun." },
+    { id: "pushup", name: "Push Up", icon: "💪", timed: false,
+      cues: ["Tangan selebar bahu, siku 45° dari badan.",
+             "Badan lurus dari kepala ke tumit.",
+             "Turun perlahan, hembus nafas semasa tolak naik."],
+      tip: "Wall push up (tangan di dinding) atau knee push up (lutut di lantai)." },
+    { id: "burpee", name: "Burpee", icon: "🤸", timed: false,
+      cues: ["Squat dan letak tangan di lantai.",
+             "Bawa kaki ke belakang ke posisi plank.",
+             "Kembali ke squat, kemudian berdiri tegak."],
+      tip: "Tanpa lompat — step back kaki satu demi satu, kemudian step in semula." },
+    { id: "mountain", name: "Mountain Climber", icon: "🧗", timed: true,
+      cues: ["Posisi plank, tangan betul-betul di bawah bahu.",
+             "Tarik lutut ke arah dada, bergilir kiri & kanan.",
+             "Perut ketat, pinggul jangan terangkat tinggi."],
+      tip: "Tangan atas meja atau dinding, buat dengan pace perlahan." },
+    { id: "dip", name: "Dip Triceps", icon: "🪑", timed: false,
+      cues: ["Tangan di tepi kerusi, jari menghala ke depan.",
+             "Bengkokkan siku ke belakang, turunkan badan perlahan.",
+             "Tolak naik guna otot lengan belakang."],
+      tip: "Guna kerusi stabil (sandar ke dinding), lutut bengkok 90°." },
+    { id: "curlup", name: "Partial Trunk Curl Up", icon: "🙆", timed: false,
+      cues: ["Baring, lutut bengkok, tapak kaki rata di lantai.",
+             "Angkat kepala & bahu sedikit sambil hembus nafas.",
+             "Jarakkan dagu dari dada, turun perlahan."],
+      tip: "Angkat bahu sahaja, tangan gelongsor di atas peha." },
+    { id: "hop", name: "Double Leg Hop", icon: "🐇", timed: false,
+      cues: ["Kaki rapat, lutut sedikit bengkok.",
+             "Lompat kecil dengan dua kaki serentak.",
+             "Mendarat lembut di hujung kaki, lutut lembut."],
+      tip: "Tukar kepada heel bounce / mini hop rendah — tumit naik turun sahaja." },
+    { id: "march", name: "Stationary Marching", icon: "🚶", timed: true,
+      cues: ["Berdiri tegak, angkat lutut bergilir-gilir.",
+             "Hayun tangan bertentangan dengan kaki.",
+             "Bernafas seperti biasa, jangan tahan nafas."],
+      tip: "Marching sambil duduk di kerusi." },
+    { id: "backext", name: "Back Extension", icon: "🦭", timed: false,
+      cues: ["Baring meniarap, tangan di sisi badan.",
+             "Angkat dada perlahan dari lantai.",
+             "Pandang lantai, leher kekal lurus."],
+      tip: "Prone — angkat dada sedikit sahaja, tangan boleh di bawah dahi." },
+    { id: "heel", name: "Heel Raise", icon: "🦶", timed: false,
+      cues: ["Berdiri tegak, kaki selebar pinggul.",
+             "Naik ke hujung jari kaki.",
+             "Turun perlahan dan terkawal."],
+      tip: "Pegang dinding atau kerusi untuk sokongan." }
+  ]
+};
+</script>
+
+<style>
+:root{
+  --bg:#1b1446; --bg2:#271d63; --panel:#2f2575; --panel2:#3a2f8c;
+  --ink:#ffffff; --ink2:#d6d0ff; --muted:#a59ee0;
+  --yellow:#ffd23f; --pink:#ff5d8f; --teal:#2ee6c5; --red:#ff4d4d; --green:#3ddc84;
+  --radius:22px;
+  --tile:clamp(26px, min(7vw, 8.5vh), 84px);
+  --key:clamp(46px, min(11vw, 9vh), 96px);
+  --cube:clamp(140px, 30vmin, 250px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:radial-gradient(1200px 700px at 20% -10%, #3b2b9a 0%, transparent 60%),
+             radial-gradient(900px 600px at 110% 110%, #5a1f73 0%, transparent 60%), var(--bg);
+  background-color:var(--bg);
+  color:var(--ink);
+  font-family:"Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size:clamp(16px, 2.2vmin + 6px, 30px);
+  line-height:1.3;
+  -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer;border:0;color:inherit}
+button:disabled{cursor:not-allowed}
+.hidden{display:none !important}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:flex;align-items:center;gap:10px;justify-content:space-between;
+  padding:10px 16px;position:sticky;top:0;z-index:20;
+  background:rgba(27,20,70,.85);backdrop-filter:blur(8px);
+  border-bottom:2px solid rgba(255,255,255,.08);
+}
+.brand{font-weight:800;font-size:clamp(20px,3.4vmin,38px);letter-spacing:.5px;white-space:nowrap}
+.brand span{color:var(--yellow)}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.icon-btn{
+  background:var(--panel);border:2px solid rgba(255,255,255,.15);
+  padding:6px 14px;border-radius:999px;font-size:clamp(14px,1.8vmin+6px,24px);font-weight:700;
+  min-height:44px;
+}
+.icon-btn:hover{background:var(--panel2)}
+
+main{max-width:1200px;margin:0 auto;padding:16px 16px 40px}
+
+/* ---------- Generic ---------- */
+.card{
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:2px solid rgba(255,255,255,.12);
+  border-radius:var(--radius);padding:clamp(16px,3vmin,36px);
+  box-shadow:0 14px 40px rgba(0,0,0,.35);
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  font-weight:800;font-size:clamp(20px,3vmin+6px,40px);
+  padding:.45em 1.2em;border-radius:999px;min-height:60px;
+  background:var(--yellow);color:#1b1446;
+  box-shadow:0 6px 0 #c79a00, 0 10px 24px rgba(0,0,0,.35);
+  transition:transform .08s, box-shadow .08s;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c79a00, 0 4px 10px rgba(0,0,0,.3)}
+.btn:disabled{opacity:.5;transform:none}
+.btn.pink{background:var(--pink);color:#fff;box-shadow:0 6px 0 #b8305b,0 10px 24px rgba(0,0,0,.35)}
+.btn.teal{background:var(--teal);color:#0d2a2a;box-shadow:0 6px 0 #149c84,0 10px 24px rgba(0,0,0,.35)}
+.btn.ghost{background:transparent;color:var(--ink);border:3px solid rgba(255,255,255,.35);box-shadow:none}
+.btn.small{font-size:clamp(16px,2vmin+6px,26px);min-height:48px}
+.center{text-align:center}
+h1,h2,h3{margin:.2em 0 .4em;line-height:1.1}
+h1{font-size:clamp(34px,7vmin,88px)}
+h2{font-size:clamp(26px,5vmin,60px)}
+h3{font-size:clamp(20px,3.4vmin,40px)}
+.muted{color:var(--muted)}
+
+/* ---------- Start screen ---------- */
+.hero{text-align:center;margin:10px 0 20px}
+.hero h1 span{color:var(--yellow)}
+.hero .dice-emoji{font-size:clamp(50px,10vmin,120px);display:inline-block;animation:wobble 2.4s ease-in-out infinite}
+@keyframes wobble{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) translateY(-6px)}}
+.safety{
+  display:flex;gap:12px;align-items:center;
+  background:#fff3cd;color:#5a3d00;border-left:8px solid #ff9f1c;
+  padding:12px 16px;border-radius:14px;font-weight:700;margin:0 auto 20px;max-width:760px;
+}
+.safety b{font-size:1.4em}
+.players-form{max-width:760px;margin:0 auto}
+.player-row{display:flex;gap:10px;margin-bottom:12px;align-items:center}
+.player-row .num{
+  flex:0 0 auto;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  font-weight:800;color:#1b1446;font-size:1.1em;
+}
+.player-row input{
+  flex:1;min-width:0;font:inherit;font-weight:700;font-size:clamp(20px,3vmin+4px,36px);
+  padding:10px 16px;border-radius:16px;border:3px solid rgba(255,255,255,.2);
+  background:#fff;color:#1b1446;
+}
+.player-row input:focus{outline:4px solid var(--yellow);outline-offset:2px}
+.player-row .rm{background:transparent;font-size:1.4em;width:52px;height:52px;border-radius:50%;color:var(--ink2)}
+.player-row .rm:hover{background:rgba(255,255,255,.1)}
+.form-actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:18px}
+
+/* ---------- Scoreboard ---------- */
+.scoreboard{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:16px}
+.score-chip{
+  background:var(--panel);border:3px solid transparent;border-radius:18px;padding:8px 14px;
+  display:flex;flex-direction:column;gap:2px;transition:transform .2s, border-color .2s;
+}
+.score-chip.active{border-color:var(--yellow);transform:translateY(-3px);box-shadow:0 0 0 4px rgba(255,210,63,.2)}
+.score-chip .nm{font-weight:800;font-size:1.05em;display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score-chip .st{font-size:.8em;color:var(--ink2);display:flex;flex-wrap:wrap;gap:4px 12px}
+.turn-dot{width:12px;height:12px;border-radius:50%;background:var(--yellow);flex:0 0 auto;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ---------- Dice (3D cube) ---------- */
+.dice-stage{perspective:900px;display:grid;place-items:center;padding:clamp(20px,5vmin,50px) 0}
+.dice-hop{will-change:transform}
+.dice-hop.rolling{animation:hop 1.7s cubic-bezier(.3,.6,.4,1)}
+@keyframes hop{
+  0%{transform:translateY(0) scale(1)}
+  15%{transform:translateY(-60px) scale(1.05)}
+  35%{transform:translateY(0) scale(.97)}
+  50%{transform:translateY(-30px)}
+  70%{transform:translateY(0) scale(.99)}
+  82%{transform:translateY(-10px)}
+  100%{transform:translateY(0) scale(1)}
+}
+.cube{
+  width:var(--cube);height:var(--cube);position:relative;transform-style:preserve-3d;
+  transform:rotateX(-20deg) rotateY(25deg);
+  transition:transform 1.7s cubic-bezier(.17,.67,.24,1.02);
+}
+.face{
+  position:absolute;inset:0;border-radius:22%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;
+  text-align:center;padding:8%;
+  border:4px solid rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 6px rgba(0,0,0,.08), inset 0 -14px 30px rgba(0,0,0,.18);
+  backface-visibility:hidden;color:#fff;
+  text-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.face .fi{font-size:calc(var(--cube) * .36);line-height:1}
+.face .fl{font-weight:800;font-size:calc(var(--cube) * .12);line-height:1.05}
+.face.long .fl{font-size:calc(var(--cube) * .095)}
+.f0{transform:rotateY(0deg) translateZ(calc(var(--cube)/2))}
+.f1{transform:rotateY(180deg) translateZ(calc(var(--cube)/2))}
+.f2{transform:rotateY(90deg) translateZ(calc(var(--cube)/2))}
+.f3{transform:rotateY(-90deg) translateZ(calc(var(--cube)/2))}
+.f4{transform:rotateX(90deg) translateZ(calc(var(--cube)/2))}
+.f5{transform:rotateX(-90deg) translateZ(calc(var(--cube)/2))}
+.dice-shadow{width:calc(var(--cube)*.9);height:18px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(8px);margin-top:26px}
+.landed{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+
+.turn-banner{text-align:center}
+.turn-banner .who{color:var(--yellow)}
+.cat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+.cat-pill{padding:4px 14px;border-radius:999px;font-weight:800;font-size:.85em;color:#fff}
+
+/* ---------- Play screen ---------- */
+.play-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.cat-badge{display:inline-flex;align-items:center;gap:10px;padding:6px 18px;border-radius:999px;font-weight:800;font-size:clamp(20px,3.4vmin,40px)}
+.word{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--tile)*.6);
+  margin:clamp(16px,4vmin,40px) 0;
+}
+.wgroup{display:flex;gap:calc(var(--tile)*.12);flex-wrap:nowrap}
+.tile{
+  width:var(--tile);height:calc(var(--tile)*1.2);border-radius:calc(var(--tile)*.18);
+  display:grid;place-items:center;font-weight:800;font-size:calc(var(--tile)*.78);
+  background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.35);
+  border-bottom-width:6px;
+}
+.tile.vowel{background:#ffffff;color:#1b1446;border-color:#fff}
+.tile.open{background:var(--yellow);color:#1b1446;border-color:#fff;animation:flip .45s ease}
+@keyframes flip{0%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.status-row{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:center;align-items:center;margin-bottom:14px;font-weight:700}
+.wrong-letters span{display:inline-block;margin:0 3px;color:var(--red);text-decoration:line-through}
+.hint{color:var(--ink2);text-align:center;font-size:.85em;margin-bottom:10px}
+
+.keyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(6px,1.2vmin,14px);max-width:900px;margin:0 auto}
+.key{
+  min-height:var(--key);border-radius:16px;font-weight:800;font-size:calc(var(--key)*.48);
+  background:#ffffff;color:#1b1446;box-shadow:0 5px 0 #b7b0e8;
+  transition:transform .06s, box-shadow .06s, background .2s;
+}
+.key:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 #b7b0e8}
+.key.right{background:var(--green);color:#063b1d;box-shadow:0 5px 0 #23944f}
+.key.wrong{background:var(--red);color:#fff;box-shadow:0 5px 0 #a82020}
+.key:disabled{opacity:.55}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+
+/* ---------- Modal ---------- */
+.modal{
+  position:fixed;inset:0;z-index:50;background:rgba(10,6,35,.82);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;
+}
+.modal-box{
+  width:100%;max-width:980px;margin:auto;
+  background:linear-gradient(180deg,#3d1f6e,#2a1660);
+  border:3px solid var(--pink);border-radius:28px;padding:clamp(16px,3.5vmin,40px);
+  box-shadow:0 30px 80px rgba(0,0,0,.6);animation:pop .35s ease;
+}
+.penalty-title{text-align:center;color:var(--pink)}
+.penalty-title .letter{display:inline-block;background:var(--red);color:#fff;border-radius:12px;padding:0 .35em;margin:0 .1em}
+.ex-card{display:grid;grid-template-columns:auto 1fr;gap:clamp(14px,3vmin,36px);align-items:center}
+.ex-art{
+  width:clamp(110px,22vmin,220px);height:clamp(110px,22vmin,220px);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff 0%, #ffe9a3 45%, #ffbf3f 100%);
+  display:grid;place-items:center;font-size:clamp(60px,12vmin,130px);
+  box-shadow:0 0 0 8px rgba(255,255,255,.12), 0 14px 30px rgba(0,0,0,.4);
+  animation:bob 1.4s ease-in-out infinite;
+}
+@keyframes bob{50%{transform:translateY(-8px) rotate(4deg)}}
+.ex-name{font-size:clamp(30px,6vmin,70px);font-weight:800;color:var(--yellow);line-height:1}
+.ex-amount{
+  display:inline-block;margin-top:8px;background:#fff;color:#1b1446;border-radius:16px;
+  padding:4px 18px;font-weight:800;font-size:clamp(28px,6vmin,72px);
+}
+.ex-amount small{font-size:.5em;color:#5a4fb3}
+.cues{margin:16px 0 10px;padding-left:1.2em}
+.cues li{margin:6px 0}
+.tipbox{background:rgba(46,230,197,.15);border:2px dashed var(--teal);border-radius:16px;padding:10px 16px}
+.tipbox b{color:var(--teal)}
+.timer{display:flex;flex-direction:column;align-items:center;gap:10px;margin:14px 0}
+.ring{position:relative;width:clamp(150px,28vmin,260px);height:clamp(150px,28vmin,260px)}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:clamp(46px,10vmin,110px)}
+.ring .num small{font-size:.35em;display:block;text-align:center;color:var(--ink2);margin-top:-.4em}
+.modal-actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:20px}
+.safety-mini{text-align:center;color:#ffd9a3;font-size:.8em;margin-top:12px}
+
+/* ---------- Summary & End ---------- */
+.big-word{font-size:clamp(32px,7vmin,90px);font-weight:800;color:var(--yellow);letter-spacing:.06em;text-align:center;word-break:break-word}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}
+.stat{background:rgba(255,255,255,.08);border-radius:18px;padding:12px;text-align:center}
+.stat .v{font-size:clamp(34px,6vmin,70px);font-weight:800;line-height:1}
+.stat .l{color:var(--ink2);font-size:.85em}
+.ex-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.ex-list li{background:rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;font-weight:700}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:clamp(16px,2.4vmin+4px,32px)}
+th,td{padding:10px 12px;text-align:center;border-bottom:2px solid rgba(255,255,255,.1)}
+th{color:var(--ink2);font-weight:700}
+td:first-child,th:first-child{text-align:left}
+tr.top td{color:var(--yellow);font-weight:800}
+.fav{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:16px 0;
+  background:rgba(255,93,143,.15);border:2px solid var(--pink);border-radius:20px;padding:14px}
+.fav .fi{font-size:clamp(46px,9vmin,100px)}
+
+/* confetti */
+.confetti{position:fixed;top:-20px;width:12px;height:18px;z-index:60;pointer-events:none;border-radius:3px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.8}}
+
+@media (max-width:560px){
+  .ex-card{grid-template-columns:1fr;text-align:center}
+  .ex-art{margin:0 auto}
+  .cues{text-align:left}
+  .keyboard{grid-template-columns:repeat(6,1fr)}
+  .topbar{padding:8px 10px}
+  .brand{font-size:20px}
+  .top-actions{gap:6px;flex-wrap:nowrap}
+  .icon-btn{padding:4px 10px;font-size:14px}
+  .icon-btn .lbl{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero .dice-emoji,.ex-art,.turn-dot{animation:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🎲 Dice-cise <span>Obes</span></div>
+  <div class="top-actions">
+    <button class="icon-btn" id="btnMute" aria-label="Bunyi">🔊 Bunyi</button>
+    <button class="icon-btn hidden" id="btnEnd">🏁 <span class="lbl">Tamat Sesi</span></button>
+    <button class="icon-btn" id="btnReset">♻️ <span class="lbl">Reset</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ========== START ========== -->
+  <section id="screen-start">
+    <div class="hero">
+      <div class="dice-emoji">🎲</div>
+      <h1>Dice-cise <span>Obes</span></h1>
+      <p class="muted">Teka perkataan. Salah teka? Baling dadu &amp; buat senaman! 💪</p>
+    </div>
+    <div class="safety" role="note"><b>⚠️</b><span>Berhenti jika sesak nafas, pening atau sakit dada.</span></div>
+    <div class="card players-form">
+      <h3>Nama Pemain <span class="muted" style="font-size:.6em">(1–4 orang, main bergilir)</span></h3>
+      <div id="playerInputs"></div>
+      <div class="form-actions">
+        <button class="btn ghost small" id="btnAddPlayer">➕ Tambah Pemain</button>
+      </div>
+      <div class="form-actions">
+        <button class="btn" id="btnStart">▶ Mula</button>
+        <button class="btn teal hidden" id="btnContinue">⏯ Sambung Sesi Lepas</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ROLL CATEGORY ========== -->
+  <section id="screen-roll" class="hidden">
+    <div class="scoreboard" data-scoreboard></div>
+    <div class="turn-banner">
+      <h2>Giliran: <span class="who" id="rollWho"></span></h2>
+      <div class="cat-legend" id="catLegend"></div>
+    </div>
+    <div class="dice-stage">
+      <div class="dice-hop" id="catHop">
+        <div class="cube" id="catCube">
+          <div class="face f0"></div><div class="face f1"></div><div class="face f2"></div>
+          <div class="face f3"></div><div class="face f4"></div><div class="face f5"></div>
+        </div>
+      </div>
+      <div class="dice-shadow"></div>
+    </div>
+    <div class="center">
+      <button class="btn pink" id="btnRollCat">🎲 Baling Dadu Kategori</button>
+      <p class="muted" id="catResult" style="min-height:1.5em"></p>
+    </div>
+  </section>
+
+  <!-- ========== PLAY ========== -->
+  <section id="screen-play" class="hidden">
+    <div class="scoreboard" data-scoreboard></div>
+    <div class="card">
+      <div class="play-head">
+        <h3 style="margin:0">🎯 <span id="playWho"></span></h3>
+        <div class="cat-badge" id="playCat"></div>
+      </div>
+      <div class="word" id="word" aria-live="polite"></div>
+      <div class="status-row">
+        <div>❌ Salah: <span id="wrongCount">0</span></div>
+        <div class="wrong-letters" id="wrongLetters"></div>
+      </div>
+      <div class="hint">Huruf vokal (A, E, I, O, U) dah dibuka. Teka konsonan sahaja!</div>
+      <div class="keyboard" id="keyboard"></div>
+    </div>
+  </section>
+
+  <!-- ========== ROUND SUMMARY ========== -->
+  <section id="screen-summary" class="hidden">
+    <div class="scoreboard" data-scoreboard></div>
+    <div class="card center">
+      <h2>🎉 Tahniah, <span id="sumWho" style="color:var(--yellow)"></span>!</h2>
+      <p class="muted" id="sumCat"></p>
+      <div class="big-word" id="sumWord"></div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="sumWrong">0</div><div class="l">Tekaan salah</div></div>
+        <div class="stat"><div class="v" id="sumReps">0</div><div class="l">Jumlah reps</div></div>
+        <div class="stat"><div class="v" id="sumSecs">0</div><div class="l">Jumlah saat</div></div>
+      </div>
+      <h3>Senaman yang dibuat</h3>
+      <ul class="ex-list" id="sumExList"></ul>
+      <div class="modal-actions">
+        <button class="btn" id="btnNext">▶ Giliran Seterusnya</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== END SESSION ========== -->
+  <section id="screen-end" class="hidden">
+    <div class="card">
+      <h2 class="center">🏁 Ringkasan Sesi</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pemain</th><th>🏆 Menang</th><th>❌ Salah</th><th>💪 Reps</th><th>⏱ Saat</th></tr></thead>
+          <tbody id="endTable"></tbody>
+        </table>
+      </div>
+      <div id="endFav"></div>
+      <div class="modal-actions">
+        <button class="btn teal" id="btnResume">⏯ Sambung Main</button>
+        <button class="btn pink" id="btnNewSession">🔄 Sesi Baru</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ========== PENALTY MODAL ========== -->
+<div class="modal hidden" id="penalty" role="dialog" aria-modal="true" aria-labelledby="penTitle">
+  <div class="modal-box">
+    <h2 class="penalty-title" id="penTitle"></h2>
+    <div id="penRollWrap">
+      <p class="center muted" style="margin:0">Masa untuk HUKUMAN! Baling Dadu Senaman 👇</p>
+      <div class="dice-stage">
+        <div class="dice-hop" id="exHop">
+          <div class="cube" id="exCube">
+            <div class="face f0"></div><div class="face f1"></div><div class="face f2"></div>
+            <div class="face f3"></div><div class="face f4"></div><div class="face f5"></div>
+          </div>
+        </div>
+        <div class="dice-shadow"></div>
+      </div>
+      <div class="center"><button class="btn pink" id="btnRollEx">🎲 Baling Dadu Senaman</button></div>
+    </div>
+
+    <div id="exCardWrap" class="hidden landed">
+      <div class="ex-card">
+        <div class="ex-art" id="exArt"></div>
+        <div>
+          <div class="ex-name" id="exName"></div>
+          <div class="ex-amount" id="exAmount"></div>
+          <ul class="cues" id="exCues"></ul>
+          <div class="tipbox">💡 <b>Versi mudah:</b> <span id="exTip"></span></div>
+        </div>
+      </div>
+      <div class="timer hidden" id="timerWrap">
+        <div class="ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="12"/>
+            <circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="#2ee6c5" stroke-width="12"
+                    stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="0"/>
+          </svg>
+          <div class="num"><div><span id="timerNum">0</span><small>saat</small></div></div>
+        </div>
+        <button class="btn teal small" id="btnTimer">▶ Mula Timer</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btnDone">✅ Selesai</button>
+      </div>
+      <div class="safety-mini">⚠️ Berhenti jika sesak nafas, pening atau sakit dada.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const STORE_KEY = "diceciseObes.v1";
+const PLAYER_COLORS = ["#ffd23f", "#2ee6c5", "#ff8fab", "#9bb8ff"];
+const CONSONANTS = "BCDFGHJKLMNPQRSTVWXYZ".split("");
+const rand = n => Math.floor(Math.random() * n);
+const pick = arr => arr[rand(arr.length)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const catById = id => CONFIG.categories.find(c => c.id === id);
+const exById = id => CONFIG.exercises.find(e => e.id === id);
+
+/* ---------------- Storage ---------------- */
+function load() {
+  try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function clearStore() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+}
+let prefsMuted = false;
+try { prefsMuted = localStorage.getItem(STORE_KEY + ".muted") === "1"; } catch (e) {}
+
+let state = null;
+function freshState(names) {
+  return {
+    players: names.map(n => ({ name: n, wins: 0, wrong: 0, reps: 0, secs: 0 })),
+    turn: 0,
+    exerciseCounts: {},
+    round: null,
+    phase: "roll",
+    lastWords: []
+  };
+}
+
+/* ---------------- Sound (WebAudio) ---------------- */
+let actx = null;
+let muted = prefsMuted;
+function ac() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function tone(freq, dur = 0.12, type = "sine", vol = 0.18, delay = 0, slideTo = null) {
+  if (muted) return;
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const sfx = {
+  roll() { let t = 0, gap = 0.04; while (t < 1.55) { tone(180 + rand(260), 0.04, "square", 0.07, t); t += gap; gap *= 1.12; } tone(140, 0.18, "triangle", 0.25, 1.65); },
+  right() { tone(660, 0.1, "triangle", 0.2); tone(990, 0.16, "triangle", 0.2, 0.09); },
+  wrong() { tone(300, 0.35, "sawtooth", 0.12, 0, 110); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, "triangle", 0.2, i * 0.11)); tone(1319, 0.5, "triangle", 0.18, 0.5); },
+  tick() { tone(880, 0.08, "square", 0.1); },
+  end() { tone(784, 0.18, "triangle", 0.22); tone(1047, 0.4, "triangle", 0.22, 0.18); },
+  click() { tone(520, 0.05, "triangle", 0.1); }
+};
+function renderMute() { $("#btnMute").innerHTML = muted ? '🔇 <span class="lbl">Senyap</span>' : '🔊 <span class="lbl">Bunyi</span>'; }
+$("#btnMute").addEventListener("click", () => {
+  muted = !muted; renderMute();
+  try { localStorage.setItem(STORE_KEY + ".muted", muted ? "1" : "0"); } catch (e) {}
+  if (!muted) sfx.click();
+});
+renderMute();
+
+/* ---------------- Screens ---------------- */
+const SCREENS = ["start", "roll", "play", "summary", "end"];
+function show(name) {
+  SCREENS.forEach(s => $("#screen-" + s).classList.toggle("hidden", s !== name));
+  $("#btnEnd").classList.toggle("hidden", !(state && ["roll", "play", "summary"].includes(name)));
+  if (state && name !== "start" && name !== "end") { state.phase = name; save(); }
+  renderScoreboards();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderScoreboards() {
+  if (!state) return;
+  const html = state.players.map((p, i) => `
+    <div class="score-chip ${i === state.turn ? "active" : ""}" style="${i === state.turn ? "" : ""}">
+      <div class="nm">${i === state.turn ? '<span class="turn-dot"></span>' : ""}<span style="color:${PLAYER_COLORS[i]}">${esc(p.name)}</span></div>
+      <div class="st"><span>🏆 ${p.wins}</span><span>❌ ${p.wrong}</span><span>💪 ${p.reps} reps</span><span>⏱ ${p.secs} s</span></div>
+    </div>`).join("");
+  $$("[data-scoreboard]").forEach(el => el.innerHTML = html);
+}
+
+/* ---------------- Start screen ---------------- */
+let draftNames = [""];
+function renderPlayerInputs() {
+  $("#playerInputs").innerHTML = draftNames.map((n, i) => `
+    <div class="player-row">
+      <div class="num" style="background:${PLAYER_COLORS[i]}">${i + 1}</div>
+      <input type="text" maxlength="16" placeholder="Pemain ${i + 1}" value="${esc(n)}" data-i="${i}" aria-label="Nama pemain ${i + 1}">
+      ${draftNames.length > 1 ? `<button class="rm" data-rm="${i}" aria-label="Buang pemain ${i + 1}">✖</button>` : '<span style="width:52px"></span>'}
+    </div>`).join("");
+  $("#btnAddPlayer").classList.toggle("hidden", draftNames.length >= 4);
+}
+$("#playerInputs").addEventListener("input", e => {
+  if (e.target.dataset.i != null) draftNames[+e.target.dataset.i] = e.target.value;
+});
+$("#playerInputs").addEventListener("click", e => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm) { draftNames.splice(+rm.dataset.rm, 1); renderPlayerInputs(); }
+});
+$("#playerInputs").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); $("#btnStart").click(); }
+});
+$("#btnAddPlayer").addEventListener("click", () => {
+  if (draftNames.length < 4) {
+    draftNames.push(""); renderPlayerInputs();
+    const ins = $$("#playerInputs input"); ins[ins.length - 1].focus();
+  }
+});
+$("#btnStart").addEventListener("click", () => {
+  ac(); sfx.click();
+  const names = draftNames.map((n, i) => n.trim() || `Pemain ${i + 1}`);
+  state = freshState(names);
+  save();
+  goRoll();
+});
+$("#btnContinue").addEventListener("click", () => { ac(); sfx.click(); resume(); });
+
+function resume() {
+  if (!state) return;
+  if (state.phase === "play" && state.round) return goPlay();
+  if (state.phase === "summary" && state.round) return goSummary();
+  goRoll();
+}
+
+/* ---------------- Dice cube ---------------- */
+const FACE_ROT = [[0, 0], [0, 180], [0, -90], [0, 90], [-90, 0], [90, 0]];
+function makeDice(cubeEl, hopEl) {
+  const faces = [...cubeEl.querySelectorAll(".face")];
+  let ax = -20, ay = 25;
+  return {
+    fill(items, render) { faces.forEach((f, i) => render(f, items[i % items.length])); },
+    roll(result, pool, render, onDone) {
+      const target = rand(6);
+      const others = pool.filter(x => x !== result);
+      faces.forEach((f, i) => render(f, i === target ? result : pick(others.length ? others : pool)));
+      const [fx, fy] = FACE_ROT[target];
+      ax = (Math.floor(ax / 360) + 2 + rand(2)) * 360 + fx;
+      ay = (Math.floor(ay / 360) + 3 + rand(2)) * 360 + fy;
+      cubeEl.style.transform = `rotateX(${ax}deg) rotateY(${ay}deg)`;
+      hopEl.classList.remove("rolling"); void hopEl.offsetWidth; hopEl.classList.add("rolling");
+      sfx.roll();
+      setTimeout(onDone, 1800);
+    }
+  };
+}
+function renderCatFace(f, c) {
+  f.style.background = `linear-gradient(145deg, ${c.color}, ${shade(c.color, -25)})`;
+  f.className = f.className.replace(/\blong\b/, "").trim();
+  f.innerHTML = `<div class="fi">${c.icon}</div><div class="fl">${esc(c.label)}</div>`;
+}
+function renderExFace(f, e) {
+  f.style.background = "linear-gradient(145deg, #ff5d8f, #b8305b)";
+  f.classList.toggle("long", e.name.length > 12);
+  f.innerHTML = `<div class="fi">${e.icon}</div><div class="fl">${esc(e.name)}</div>`;
+}
+function shade(hex, pct) {
+  const n = parseInt(hex.slice(1), 16);
+  const adj = v => Math.max(0, Math.min(255, Math.round(v + v * pct / 100)));
+  return "#" + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(adj).map(v => v.toString(16).padStart(2, "0")).join("");
+}
+const catDice = makeDice($("#catCube"), $("#catHop"));
+const exDice = makeDice($("#exCube"), $("#exHop"));
+catDice.fill([...CONFIG.categories, CONFIG.categories[0]], renderCatFace);
+exDice.fill(CONFIG.exercises.slice(0, 6), renderExFace);
+
+/* ---------------- Roll category ---------------- */
+let busy = false;
+function goRoll() {
+  $("#rollWho").textContent = state.players[state.turn].name;
+  $("#rollWho").style.color = PLAYER_COLORS[state.turn];
+  $("#catLegend").innerHTML = CONFIG.categories.map(c =>
+    `<span class="cat-pill" style="background:${c.color}">${c.icon} ${esc(c.label)}</span>`).join("");
+  $("#catResult").textContent = "";
+  $("#btnRollCat").disabled = false;
+  busy = false;
+  show("roll");
+}
+$("#btnRollCat").addEventListener("click", rollCategory);
+function rollCategory() {
+  if (busy) return;
+  busy = true;
+  $("#btnRollCat").disabled = true;
+  const cat = pick(CONFIG.categories);
+  catDice.roll(cat, CONFIG.categories, renderCatFace, () => {
+    $("#catResult").innerHTML = `Kategori: <b style="color:${cat.color}">${cat.icon} ${esc(cat.label)}</b>`;
+    sfx.right();
+    // pilih perkataan, elak ulang perkataan terkini
+    const recent = state.lastWords || [];
+    let pool = cat.words.filter(w => !recent.includes(w));
+    if (!pool.length) pool = cat.words;
+    const word = pick(pool).toUpperCase().replace(/[^A-Z ]/g, "").replace(/\s+/g, " ").trim();
+    state.lastWords = [word, ...recent].slice(0, 30);
+    state.round = { cat: cat.id, word, guessed: [], wrong: 0, exercises: [] };
+    save();
+    setTimeout(() => { busy = false; goPlay(); }, 900);
+  });
+}
+
+/* ---------------- Play ---------------- */
+const isVowel = ch => CONFIG.vowels.includes(ch);
+function isRevealed(ch) { return isVowel(ch) || state.round.guessed.includes(ch); }
+function letterCount(word) { return word.replace(/\s/g, "").length; }
+
+function goPlay() {
+  const r = state.round, cat = catById(r.cat);
+  $("#playWho").textContent = state.players[state.turn].name;
+  $("#playWho").style.color = PLAYER_COLORS[state.turn];
+  const badge = $("#playCat");
+  badge.style.background = cat.color;
+  badge.textContent = `${cat.icon} ${cat.label}`;
+  renderWord();
+  renderKeyboard();
+  renderWrong();
+  show("play");
+}
+function renderWord(newLetter) {
+  const r = state.round;
+  $("#word").innerHTML = r.word.split(" ").map(w =>
+    `<div class="wgroup">${w.split("").map(ch => {
+      const vow = isVowel(ch), open = isRevealed(ch);
+      const cls = vow ? "tile vowel" : open ? "tile open" + (ch === newLetter ? "" : "") : "tile";
+      const anim = open && !vow && ch !== newLetter ? ' style="animation:none"' : "";
+      return `<div class="${cls}"${anim}>${open ? ch : ""}</div>`;
+    }).join("")}</div>`).join("");
+}
+function renderKeyboard() {
+  const r = state.round;
+  $("#keyboard").innerHTML = CONSONANTS.map(ch => {
+    const g = r.guessed.includes(ch);
+    const cls = g ? (r.word.includes(ch) ? "right" : "wrong") : "";
+    return `<button class="key ${cls}" data-k="${ch}" ${g ? "disabled" : ""} aria-label="Huruf ${ch}">${ch}</button>`;
+  }).join("");
+}
+function renderWrong() {
+  const r = state.round;
+  $("#wrongCount").textContent = r.wrong;
+  const wl = r.guessed.filter(ch => !r.word.includes(ch));
+  $("#wrongLetters").innerHTML = wl.map(c => `<span>${c}</span>`).join("");
+}
+$("#keyboard").addEventListener("click", e => {
+  const k = e.target.closest("[data-k]");
+  if (k && !k.disabled) guess(k.dataset.k);
+});
+function isComplete() {
+  return state.round.word.split("").every(ch => ch === " " || isRevealed(ch));
+}
+function guess(ch) {
+  const r = state.round;
+  if (!r || busy || !$("#penalty").classList.contains("hidden")) return;
+  if (!CONSONANTS.includes(ch) || r.guessed.includes(ch)) return;
+  r.guessed.push(ch);
+  const hit = r.word.includes(ch);
+  if (hit) {
+    sfx.right();
+    renderWord(ch); renderKeyboard(); save();
+    if (isComplete()) {
+      busy = true;
+      state.players[state.turn].wins++;
+      save();
+      setTimeout(() => { sfx.win(); confetti(); }, 250);
+      setTimeout(() => { busy = false; goSummary(); }, 1700);
+    }
+  } else {
+    sfx.wrong();
+    r.wrong++;
+    state.players[state.turn].wrong++;
+    renderKeyboard(); renderWrong(); save(); renderScoreboards();
+    const w = $("#word"); w.classList.remove("shake"); void w.offsetWidth; w.classList.add("shake");
+    setTimeout(() => openPenalty(ch), 450);
+  }
+}
+
+/* ---------------- Penalty modal ---------------- */
+let timer = { id: null, left: 0, total: 0, running: false };
+let currentEx = null;
+function openPenalty(letter) {
+  currentEx = null;
+  $("#penTitle").innerHTML = `Huruf <span class="letter">${letter}</span> tiada! 😅`;
+  $("#penRollWrap").classList.remove("hidden");
+  $("#exCardWrap").classList.add("hidden");
+  $("#btnRollEx").disabled = false;
+  $("#penalty").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  setTimeout(() => $("#btnRollEx").focus(), 50);
+}
+$("#btnRollEx").addEventListener("click", () => {
+  if ($("#btnRollEx").disabled) return;
+  $("#btnRollEx").disabled = true;
+  const ex = pick(CONFIG.exercises);
+  exDice.roll(ex, CONFIG.exercises, renderExFace, () => showExercise(ex));
+});
+function showExercise(ex) {
+  const r = state.round, p = state.players[state.turn];
+  const reps = Math.min(letterCount(r.word), CONFIG.maxReps);
+  const amount = ex.timed ? reps * CONFIG.secondsPerRep : reps;
+  currentEx = { id: ex.id, amount, timed: ex.timed };
+  // rekod statistik
+  r.exercises.push(currentEx);
+  if (ex.timed) p.secs += amount; else p.reps += amount;
+  state.exerciseCounts[ex.id] = (state.exerciseCounts[ex.id] || 0) + 1;
+  save(); renderScoreboards();
+
+  $("#exArt").textContent = ex.icon;
+  $("#exName").textContent = ex.name;
+  $("#exAmount").innerHTML = ex.timed ? `${amount} <small>saat</small>` : `${amount} <small>reps</small>`;
+  $("#exCues").innerHTML = ex.cues.map(c => `<li>${esc(c)}</li>`).join("");
+  $("#exTip").textContent = ex.tip;
+  $("#timerWrap").classList.toggle("hidden", !ex.timed);
+  if (ex.timed) setupTimer(amount);
+  sfx.right();
+  setTimeout(() => {
+    $("#penRollWrap").classList.add("hidden");
+    const card = $("#exCardWrap");
+    card.classList.remove("hidden", "landed"); void card.offsetWidth; card.classList.add("landed");
+    (ex.timed ? $("#btnTimer") : $("#btnDone")).focus();
+  }, 500);
+}
+function setupTimer(total) {
+  stopTimer();
+  timer.total = timer.left = total;
+  $("#btnTimer").textContent = "▶ Mula Timer";
+  drawTimer();
+}
+function drawTimer() {
+  $("#timerNum").textContent = timer.left;
+  const C = 326.73;
+  $("#ringArc").setAttribute("stroke-dashoffset", String(C * (1 - timer.left / timer.total)));
+  $("#ringArc").setAttribute("stroke", timer.left <= 3 ? "#ff4d4d" : "#2ee6c5");
+}
+function stopTimer() { clearInterval(timer.id); timer.id = null; timer.running = false; }
+$("#btnTimer").addEventListener("click", () => {
+  if (timer.running) { stopTimer(); $("#btnTimer").textContent = "▶ Sambung"; return; }
+  if (timer.left <= 0) { timer.left = timer.total; drawTimer(); }
+  timer.running = true;
+  $("#btnTimer").textContent = "⏸ Jeda";
+  sfx.click();
+  timer.id = setInterval(() => {
+    timer.left--;
+    drawTimer();
+    if (timer.left <= 0) {
+      stopTimer(); sfx.end();
+      $("#btnTimer").textContent = "🔁 Ulang";
+      $("#btnDone").focus();
+    } else if (timer.left <= 3) sfx.tick();
+  }, 1000);
+});
+$("#btnDone").addEventListener("click", closePenalty);
+function closePenalty() {
+  stopTimer();
+  $("#penalty").classList.add("hidden");
+  document.body.style.overflow = "";
+  sfx.click();
+}
+
+/* ---------------- Summary ---------------- */
+function goSummary() {
+  const r = state.round, cat = catById(r.cat), p = state.players[state.turn];
+  $("#sumWho").textContent = p.name;
+  $("#sumCat").textContent = `${cat.icon} ${cat.label}`;
+  $("#sumWord").textContent = r.word;
+  $("#sumWrong").textContent = r.wrong;
+  $("#sumReps").textContent = r.exercises.filter(e => !e.timed).reduce((a, e) => a + e.amount, 0);
+  $("#sumSecs").textContent = r.exercises.filter(e => e.timed).reduce((a, e) => a + e.amount, 0);
+  $("#sumExList").innerHTML = r.exercises.length
+    ? r.exercises.map(e => { const x = exById(e.id); return `<li>${x.icon} ${esc(x.name)} × ${e.amount}${e.timed ? " s" : ""}</li>`; }).join("")
+    : `<li>🌟 Tiada! Tekaan sempurna.</li>`;
+  const next = (state.turn + 1) % state.players.length;
+  $("#btnNext").textContent = state.players.length > 1 ? `▶ Giliran ${state.players[next].name}` : "▶ Pusingan Seterusnya";
+  show("summary");
+}
+$("#btnNext").addEventListener("click", () => {
+  sfx.click();
+  state.turn = (state.turn + 1) % state.players.length;
+  state.round = null;
+  save();
+  goRoll();
+});
+
+/* ---------------- End session ---------------- */
+$("#btnEnd").addEventListener("click", () => { sfx.click(); goEnd(); });
+function goEnd() {
+  const rows = state.players.map((p, i) => ({ ...p, i })).sort((a, b) => b.wins - a.wins || a.wrong - b.wrong);
+  const best = rows.length ? rows[0].wins : 0;
+  $("#endTable").innerHTML = rows.map(p => `
+    <tr class="${p.wins === best && best > 0 ? "top" : ""}">
+      <td><span style="color:${PLAYER_COLORS[p.i]}">●</span> ${esc(p.name)}${p.wins === best && best > 0 ? " 👑" : ""}</td>
+      <td>${p.wins}</td><td>${p.wrong}</td><td>${p.reps}</td><td>${p.secs}</td>
+    </tr>`).join("");
+  const counts = state.exerciseCounts;
+  const max = Math.max(0, ...Object.values(counts));
+  if (max > 0) {
+    const top = CONFIG.exercises.filter(e => counts[e.id] === max);
+    $("#endFav").innerHTML = `<div class="fav">
+      <div class="fi">${top.map(e => e.icon).join(" ")}</div>
+      <div><div class="muted">Senaman paling kerap keluar</div>
+      <h3 style="margin:0;color:var(--yellow)">${top.map(e => esc(e.name)).join(", ")}</h3>
+      <div>${max} kali</div></div></div>`;
+  } else {
+    $("#endFav").innerHTML = `<p class="center muted">Belum ada senaman dibuat dalam sesi ini.</p>`;
+  }
+  show("end");
+  $("#btnEnd").classList.add("hidden");
+}
+$("#btnResume").addEventListener("click", () => { sfx.click(); resume(); });
+$("#btnNewSession").addEventListener("click", () => resetGame(true));
+$("#btnReset").addEventListener("click", () => resetGame(false));
+function resetGame(skipConfirm) {
+  if (!skipConfirm && state && !confirm("Reset permainan? Semua skor akan dipadam.")) return;
+  stopTimer();
+  $("#penalty").classList.add("hidden");
+  document.body.style.overflow = "";
+  const keepNames = state ? state.players.map(p => p.name) : null;
+  state = null; clearStore();
+  draftNames = keepNames && keepNames.length ? keepNames : [""];
+  renderPlayerInputs();
+  $("#btnContinue").classList.add("hidden");
+  show("start");
+}
+
+/* ---------------- Confetti ---------------- */
+function confetti() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#ffd23f", "#ff5d8f", "#2ee6c5", "#9b5de5", "#3a86ff", "#ffffff"];
+  for (let i = 0; i < 90; i++) {
+    const d = document.createElement("div");
+    d.className = "confetti";
+    d.style.left = Math.random() * 100 + "vw";
+    d.style.background = pick(colors);
+    d.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+    d.style.animationDelay = Math.random() * 0.4 + "s";
+    d.style.transform = `rotate(${rand(360)}deg)`;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 3800);
+  }
+}
+
+/* ---------------- Physical keyboard ---------------- */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const modalOpen = !$("#penalty").classList.contains("hidden");
+  if (modalOpen) {
+    if (e.key === "Enter" || e.key === " ") {
+      // biar butang yang difokus mengendalikan Enter/Space
+      if (document.activeElement && document.activeElement.tagName === "BUTTON") return;
+      e.preventDefault();
+      if (!$("#btnRollEx").disabled) $("#btnRollEx").click();
+      else if (currentEx) $("#btnDone").click();
+    }
+    return;
+  }
+  if (!state) return;
+  if (state.phase === "play" && !$("#screen-play").classList.contains("hidden")) {
+    const k = e.key.toUpperCase();
+    if (k.length === 1 && CONSONANTS.includes(k) && !e.ctrlKey && !e.metaKey && !e.altKey) guess(k);
+  } else if (state.phase === "roll" && !$("#screen-roll").classList.contains("hidden")) {
+    if ((e.key === "Enter" || e.key === " ") && document.activeElement.tagName !== "BUTTON") { e.preventDefault(); rollCategory(); }
+  }
+});
+
+/* ---------------- Init ---------------- */
+const saved = load();
+if (saved && Array.isArray(saved.players) && saved.players.length) {
+  state = saved;
+  state.exerciseCounts = state.exerciseCounts || {};
+  draftNames = state.players.map(p => p.name);
+  $("#btnContinue").classList.remove("hidden");
+  // pusingan yang sedang berjalan mesti sah
+  if (state.round && (!state.round.word || !catById(state.round.cat))) { state.round = null; state.phase = "roll"; }
+}
+renderPlayerInputs();
+show("start");
+// show() set phase hanya untuk skrin permainan; skrin mula tidak ubah fasa tersimpan
+})();
+</script>
+</body>
+</html>
