@@ -10,3 +10,7 @@ Drag & drop folder ini ke https://app.netlify.com/drop, atau sambung repo ini
 ## Edit perkataan / senaman
 Buka `index.html` dan ubah objek `CONFIG` di bahagian atas fail
 (`categories[].words` dan `exercises[]`).
+
+## GitHub Pages
+Workflow `.github/workflows/pages.yml` deploy `index.html` setiap kali push.
+URL: https://mohdadhanawawi.github.io/dise-cise-obesity/
