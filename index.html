@@ -19,6 +19,9 @@
    - exercises: 10 muka Dadu Senaman. timed:true = dikira dalam saat.
    ===================================================================== */
 const CONFIG = {
+  adminPin: "1234",       // PIN Panel Admin — TUKAR sebelum guna
+  sheetUrl: "",           // (pilihan) URL Google Apps Script untuk kumpul rekod semua peranti.
+                          // Kosongkan = rekod disimpan dalam peranti ini sahaja. Lihat README.
   maxReps: 15,            // had maksimum reps
   secondsPerRep: 2,       // senaman berasaskan masa: reps × 2 saat
   vowels: "AEIOU",
@@ -105,8 +108,8 @@ const CONFIG = {
   --ink:#ffffff; --ink2:#d6d0ff; --muted:#a59ee0;
   --yellow:#ffd23f; --pink:#ff5d8f; --teal:#2ee6c5; --red:#ff4d4d; --green:#3ddc84;
   --radius:22px;
-  --tile:clamp(26px, min(7vw, 8.5vh), 84px);
-  --key:clamp(46px, min(11vw, 9vh), 96px);
+  --tile:clamp(34px, min(9vw, 11vh), 110px); /* JS kira saiz sebenar ikut panjang perkataan */
+  --key:clamp(58px, min(15vw, 9vh), 112px);
   --cube:clamp(140px, 30vmin, 250px);
 }
 *{box-sizing:border-box}
@@ -117,7 +120,7 @@ body{
   background-color:var(--bg);
   color:var(--ink);
   font-family:"Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size:clamp(16px, 2.2vmin + 6px, 30px);
+  font-size:clamp(20px, 4vmin, 34px);
   line-height:1.3;
   -webkit-tap-highlight-color:transparent;
   overflow-x:hidden;
@@ -208,7 +211,7 @@ h3{font-size:clamp(20px,3.4vmin,40px)}
 }
 .score-chip.active{border-color:var(--yellow);transform:translateY(-3px);box-shadow:0 0 0 4px rgba(255,210,63,.2)}
 .score-chip .nm{font-weight:800;font-size:1.05em;display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.score-chip .st{font-size:.8em;color:var(--ink2);display:flex;flex-wrap:wrap;gap:4px 12px}
+.score-chip .st{font-size:.9em;color:var(--ink2);display:flex;flex-wrap:wrap;gap:4px 12px}
 .turn-dot{width:12px;height:12px;border-radius:50%;background:var(--yellow);flex:0 0 auto;animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.3}}
 
@@ -274,13 +277,15 @@ h3{font-size:clamp(20px,3.4vmin,40px)}
 .tile.vowel{background:#ffffff;color:#1b1446;border-color:#fff}
 .tile.open{background:var(--yellow);color:#1b1446;border-color:#fff;animation:flip .45s ease}
 @keyframes flip{0%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
-.status-row{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:center;align-items:center;margin-bottom:14px;font-weight:700}
-.wrong-letters span{display:inline-block;margin:0 3px;color:var(--red);text-decoration:line-through}
-.hint{color:var(--ink2);text-align:center;font-size:.85em;margin-bottom:10px}
+.status-row{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:center;align-items:center;margin-bottom:14px;font-weight:800;font-size:1.15em}
+.wrong-letters span{display:inline-block;margin:0 3px;background:var(--red);color:#fff;border-radius:10px;padding:0 .4em;font-size:1em}
+.hint{color:var(--ink2);text-align:center;font-size:.85em;margin-bottom:12px}
+#screen-play .card{display:flex;flex-direction:column;min-height:calc(100dvh - 230px)}
+#screen-play .word{flex:1;align-content:center}
 
-.keyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(6px,1.2vmin,14px);max-width:900px;margin:0 auto}
+.keyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(6px,1.4vmin,14px);width:100%;max-width:900px;margin:0 auto}
 .key{
-  min-height:var(--key);border-radius:16px;font-weight:800;font-size:calc(var(--key)*.48);
+  min-height:var(--key);border-radius:16px;font-weight:800;font-size:calc(var(--key)*.5);
   background:#ffffff;color:#1b1446;box-shadow:0 5px 0 #b7b0e8;
   transition:transform .06s, box-shadow .06s, background .2s;
 }
@@ -349,6 +354,37 @@ tr.top td{color:var(--yellow);font-weight:800}
   background:rgba(255,93,143,.15);border:2px solid var(--pink);border-radius:20px;padding:14px}
 .fav .fi{font-size:clamp(46px,9vmin,100px)}
 
+/* ---------- Admin ---------- */
+.admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-login{max-width:480px;margin:10px auto;text-align:center}
+.text-in{
+  width:100%;font:inherit;font-weight:700;padding:10px 16px;border-radius:16px;
+  border:3px solid rgba(255,255,255,.2);background:#fff;color:#1b1446;
+}
+.text-in:focus{outline:4px solid var(--yellow);outline-offset:2px}
+.form-error{color:#ff9a9a;font-weight:700;min-height:1.4em;text-align:center;margin-top:8px}
+.admin-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+.admin-filters .text-in{flex:1 1 220px;width:auto}
+.admin-filters select{font:inherit;font-weight:700;padding:10px 12px;border-radius:16px;border:0;background:#fff;color:#1b1446}
+.admin-filters label{display:flex;align-items:center;gap:8px;font-weight:700}
+.admin-filters input[type=checkbox]{width:26px;height:26px}
+.src{display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(255,255,255,.1);font-size:.8em}
+.pl-card{background:rgba(255,255,255,.07);border-radius:18px;margin:10px 0;border:2px solid rgba(255,255,255,.1)}
+.pl-card summary{cursor:pointer;padding:12px 16px;list-style:none;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.pl-card summary::-webkit-details-marker{display:none}
+.pl-card summary .pn{font-weight:800;font-size:1.15em;color:var(--yellow);flex:1 1 100%}
+.pl-card summary .pm{font-size:.85em;color:var(--ink2)}
+.pl-card[open] summary{border-bottom:2px solid rgba(255,255,255,.1)}
+.rounds{padding:8px 12px 14px}
+.round{padding:10px 6px;border-bottom:1px dashed rgba(255,255,255,.15)}
+.round:last-child{border-bottom:0}
+.round .rh{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.9em}
+.badge{padding:2px 12px;border-radius:999px;font-weight:800;font-size:.8em}
+.badge.ok{background:var(--green);color:#063b1d}
+.badge.no{background:#ffb347;color:#4a2a00}
+.pun{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pun span{background:rgba(255,93,143,.2);border:1px solid var(--pink);border-radius:999px;padding:2px 12px;font-size:.85em}
+
 /* confetti */
 .confetti{position:fixed;top:-20px;width:12px;height:18px;z-index:60;pointer-events:none;border-radius:3px;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.8}}
@@ -357,11 +393,13 @@ tr.top td{color:var(--yellow);font-weight:800}
   .ex-card{grid-template-columns:1fr;text-align:center}
   .ex-art{margin:0 auto}
   .cues{text-align:left}
-  .keyboard{grid-template-columns:repeat(6,1fr)}
+  .keyboard{gap:6px}
+  .key{border-radius:12px}
   .topbar{padding:8px 10px}
-  .brand{font-size:20px}
   .top-actions{gap:6px;flex-wrap:nowrap}
-  .icon-btn{padding:4px 10px;font-size:14px}
+  .icon-btn{padding:4px 8px;font-size:18px;min-width:44px}
+  .brand{font-size:19px}
+  main{padding:12px 12px 30px}
   .icon-btn .lbl{display:none}
 }
 @media (prefers-reduced-motion:reduce){
@@ -376,6 +414,7 @@ tr.top td{color:var(--yellow);font-weight:800}
   <div class="top-actions">
     <button class="icon-btn" id="btnMute" aria-label="Bunyi">🔊 Bunyi</button>
     <button class="icon-btn hidden" id="btnEnd">🏁 <span class="lbl">Tamat Sesi</span></button>
+    <button class="icon-btn" id="btnAdmin">🔐 <span class="lbl">Admin</span></button>
     <button class="icon-btn" id="btnReset">♻️ <span class="lbl">Reset</span></button>
   </div>
 </header>
@@ -391,10 +430,12 @@ tr.top td{color:var(--yellow);font-weight:800}
     <div class="safety" role="note"><b>⚠️</b><span>Berhenti jika sesak nafas, pening atau sakit dada.</span></div>
     <div class="card players-form">
       <h3>Nama Pemain <span class="muted" style="font-size:.6em">(1–4 orang, main bergilir)</span></h3>
+      <p class="muted" style="font-size:.8em;margin-top:0">Nama wajib diisi — rekod permainan &amp; senaman akan disimpan untuk semakan fisioterapis.</p>
       <div id="playerInputs"></div>
       <div class="form-actions">
         <button class="btn ghost small" id="btnAddPlayer">➕ Tambah Pemain</button>
       </div>
+      <div class="form-error" id="nameError"></div>
       <div class="form-actions">
         <button class="btn" id="btnStart">▶ Mula</button>
         <button class="btn teal hidden" id="btnContinue">⏯ Sambung Sesi Lepas</button>
@@ -476,6 +517,41 @@ tr.top td{color:var(--yellow);font-weight:800}
       <div class="modal-actions">
         <button class="btn teal" id="btnResume">⏯ Sambung Main</button>
         <button class="btn pink" id="btnNewSession">🔄 Sesi Baru</button>
+      </div>
+    </div>
+  </section>
+  <!-- ========== ADMIN ========== -->
+  <section id="screen-admin" class="hidden">
+    <div class="card">
+      <div class="admin-head">
+        <h2 style="margin:0">🔐 Panel Admin</h2>
+        <button class="btn ghost small" id="btnAdminExit">✖ Keluar</button>
+      </div>
+      <div id="adminLogin" class="admin-login">
+        <p class="muted">Masukkan PIN admin</p>
+        <input class="text-in" id="adminPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" style="text-align:center;font-size:1.4em">
+        <div class="form-error" id="adminErr"></div>
+        <button class="btn" id="btnAdminLogin">Masuk</button>
+      </div>
+      <div id="adminBody" class="hidden">
+        <p><span class="src" id="adminSource"></span></p>
+        <div class="admin-filters">
+          <input class="text-in" id="adminSearch" type="search" placeholder="🔍 Cari nama...">
+          <select id="adminRange" aria-label="Tempoh">
+            <option value="today">Hari ini</option>
+            <option value="7">7 hari</option>
+            <option value="30">30 hari</option>
+            <option value="all" selected>Semua</option>
+          </select>
+          <label><input type="checkbox" id="adminDoneOnly"> Berjaya sahaja</label>
+        </div>
+        <div class="stats" id="adminStats"></div>
+        <div id="adminList"></div>
+        <div class="modal-actions">
+          <button class="btn teal small" id="btnAdminReload">🔄 Muat Semula</button>
+          <button class="btn small" id="btnAdminCsv">⬇️ Export CSV</button>
+          <button class="btn pink small" id="btnAdminClear">🗑 Padam Rekod Peranti</button>
+        </div>
       </div>
     </div>
   </section>
@@ -607,11 +683,12 @@ $("#btnMute").addEventListener("click", () => {
 renderMute();
 
 /* ---------------- Screens ---------------- */
-const SCREENS = ["start", "roll", "play", "summary", "end"];
+const SCREENS = ["start", "roll", "play", "summary", "end", "admin"];
 function show(name) {
   SCREENS.forEach(s => $("#screen-" + s).classList.toggle("hidden", s !== name));
   $("#btnEnd").classList.toggle("hidden", !(state && ["roll", "play", "summary"].includes(name)));
-  if (state && name !== "start" && name !== "end") { state.phase = name; save(); }
+  if (state && ["roll", "play", "summary"].includes(name)) { state.phase = name; save(); }
+  $("#btnAdmin").classList.toggle("hidden", name === "admin");
   renderScoreboards();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -638,7 +715,7 @@ function renderPlayerInputs() {
   $("#btnAddPlayer").classList.toggle("hidden", draftNames.length >= 4);
 }
 $("#playerInputs").addEventListener("input", e => {
-  if (e.target.dataset.i != null) draftNames[+e.target.dataset.i] = e.target.value;
+  if (e.target.dataset.i != null) { draftNames[+e.target.dataset.i] = e.target.value; $("#nameError").textContent = ""; }
 });
 $("#playerInputs").addEventListener("click", e => {
   const rm = e.target.closest("[data-rm]");
@@ -654,8 +731,17 @@ $("#btnAddPlayer").addEventListener("click", () => {
   }
 });
 $("#btnStart").addEventListener("click", () => {
-  ac(); sfx.click();
-  const names = draftNames.map((n, i) => n.trim() || `Pemain ${i + 1}`);
+  ac();
+  const names = draftNames.map(n => n.trim().replace(/\s+/g, " "));
+  const blank = names.findIndex(n => !n);
+  if (blank >= 0) {
+    $("#nameError").textContent = `Sila isi nama Pemain ${blank + 1}.`;
+    const ins = $$("#playerInputs input"); if (ins[blank]) ins[blank].focus();
+    sfx.wrong(); return;
+  }
+  $("#nameError").textContent = "";
+  sfx.click();
+  if (state) logRound("tidak selesai");
   state = freshState(names);
   save();
   goRoll();
@@ -759,7 +845,18 @@ function goPlay() {
   renderKeyboard();
   renderWrong();
   show("play");
+  fitTiles();
 }
+function fitTiles() {
+  const w = $("#word");
+  if (!state || !state.round || $("#screen-play").classList.contains("hidden")) return;
+  const maxLen = Math.max(...state.round.word.split(" ").map(g => g.length));
+  const avail = Math.min(w.clientWidth || window.innerWidth - 64, 1100);
+  let size = Math.floor(avail / (maxLen * 1.1));
+  size = Math.max(30, Math.min(size, Math.floor(window.innerHeight * 0.13), 120));
+  w.style.setProperty("--tile", size + "px");
+}
+window.addEventListener("resize", fitTiles);
 function renderWord(newLetter) {
   const r = state.round;
   $("#word").innerHTML = r.word.split(" ").map(w =>
@@ -803,6 +900,7 @@ function guess(ch) {
     if (isComplete()) {
       busy = true;
       state.players[state.turn].wins++;
+      logRound("selesai");
       save();
       setTimeout(() => { sfx.win(); confetti(); }, 250);
       setTimeout(() => { busy = false; goSummary(); }, 1700);
@@ -953,6 +1051,7 @@ $("#btnNewSession").addEventListener("click", () => resetGame(true));
 $("#btnReset").addEventListener("click", () => resetGame(false));
 function resetGame(skipConfirm) {
   if (!skipConfirm && state && !confirm("Reset permainan? Semua skor akan dipadam.")) return;
+  if (state) logRound("tidak selesai");
   stopTimer();
   $("#penalty").classList.add("hidden");
   document.body.style.overflow = "";
@@ -963,6 +1062,174 @@ function resetGame(skipConfirm) {
   $("#btnContinue").classList.add("hidden");
   show("start");
 }
+
+/* ---------------- Sejarah (rekod untuk admin) ----------------
+   Disimpan berasingan daripada state permainan — "Reset" TIDAK padam rekod ini. */
+const HIST_KEY = STORE_KEY + ".history";
+function loadHistory() {
+  try { const h = JSON.parse(localStorage.getItem(HIST_KEY)); return Array.isArray(h) ? h : []; }
+  catch (e) { return []; }
+}
+function saveHistory(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch (e) {} }
+function logRound(status) {
+  const r = state && state.round;
+  if (!r || r.logged) return;
+  if (status !== "selesai" && !r.guessed.length) return; // pusingan belum dimain langsung
+  const cat = catById(r.cat), p = state.players[state.turn];
+  const punishments = r.exercises.map(e => ({ name: exById(e.id).name, amount: e.amount, unit: e.timed ? "saat" : "reps" }));
+  const rec = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    ts: new Date().toISOString(),
+    name: p.name, category: cat ? cat.label : r.cat, word: r.word, status,
+    wrong: r.wrong, punishments,
+    reps: punishments.filter(x => x.unit === "reps").reduce((a, x) => a + x.amount, 0),
+    secs: punishments.filter(x => x.unit === "saat").reduce((a, x) => a + x.amount, 0)
+  };
+  r.logged = true;
+  const h = loadHistory(); h.push(rec); saveHistory(h);
+  if (CONFIG.sheetUrl) {
+    try { fetch(CONFIG.sheetUrl, { method: "POST", mode: "no-cors", body: JSON.stringify(rec) }).catch(() => {}); } catch (e) {}
+  }
+}
+
+/* ---------------- Panel Admin ---------------- */
+let adminOk = false, adminPinUsed = "", adminRecords = [], adminReturn = "start";
+const fmtTime = ts => { try { return new Date(ts).toLocaleString("ms-MY", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ts; } };
+const punText = p => `${p.name} ×${p.amount}${p.unit === "saat" ? " s" : ""}`;
+
+$("#btnAdmin").addEventListener("click", () => {
+  sfx.click();
+  const visible = SCREENS.find(s => !$("#screen-" + s).classList.contains("hidden"));
+  adminReturn = visible || "start";
+  $("#adminLogin").classList.toggle("hidden", adminOk);
+  $("#adminBody").classList.toggle("hidden", !adminOk);
+  show("admin");
+  if (adminOk) adminLoad(); else { $("#adminPin").value = ""; $("#adminErr").textContent = ""; setTimeout(() => $("#adminPin").focus(), 50); }
+});
+$("#btnAdminExit").addEventListener("click", () => {
+  sfx.click();
+  if (adminReturn === "play" && state && state.round) return goPlay();
+  if (adminReturn === "end" && state) return goEnd();
+  if (["roll", "summary"].includes(adminReturn) && state) return resume();
+  show("start");
+});
+function adminLogin() {
+  const pin = $("#adminPin").value.trim();
+  if (pin !== String(CONFIG.adminPin)) { $("#adminErr").textContent = "PIN salah."; sfx.wrong(); return; }
+  adminOk = true; adminPinUsed = pin; sfx.right();
+  $("#adminLogin").classList.add("hidden");
+  $("#adminBody").classList.remove("hidden");
+  adminLoad();
+}
+$("#btnAdminLogin").addEventListener("click", adminLogin);
+$("#adminPin").addEventListener("keydown", e => { if (e.key === "Enter") adminLogin(); });
+
+async function adminLoad() {
+  const local = loadHistory();
+  const src = $("#adminSource");
+  adminRecords = local;
+  if (CONFIG.sheetUrl) {
+    src.textContent = "⏳ Memuatkan dari Google Sheet...";
+    renderAdmin();
+    try {
+      const res = await fetch(CONFIG.sheetUrl + "?key=" + encodeURIComponent(adminPinUsed), { cache: "no-store" });
+      const j = await res.json();
+      if (j.error) throw new Error(j.error);
+      const byId = new Map();
+      [...(j.records || []), ...local].forEach(r => r && r.id && byId.set(r.id, r));
+      adminRecords = [...byId.values()];
+      src.textContent = "☁️ Data: Google Sheet (semua peranti)";
+    } catch (e) {
+      src.textContent = "⚠️ Gagal capai Google Sheet — papar rekod peranti ini sahaja";
+    }
+  } else {
+    src.textContent = "📱 Data: peranti ini sahaja";
+  }
+  renderAdmin();
+}
+function adminFiltered() {
+  const q = $("#adminSearch").value.trim().toLowerCase();
+  const range = $("#adminRange").value;
+  const doneOnly = $("#adminDoneOnly").checked;
+  let from = 0;
+  if (range === "today") { const d = new Date(); d.setHours(0, 0, 0, 0); from = d.getTime(); }
+  else if (range !== "all") from = Date.now() - (+range) * 864e5;
+  return adminRecords.filter(r =>
+    (!q || String(r.name).toLowerCase().includes(q)) &&
+    (!doneOnly || r.status === "selesai") &&
+    new Date(r.ts).getTime() >= from
+  ).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+}
+function renderAdmin() {
+  const recs = adminFiltered();
+  const groups = new Map();
+  recs.forEach(r => {
+    const k = String(r.name).trim().toLowerCase();
+    if (!groups.has(k)) groups.set(k, { name: r.name, list: [] });
+    groups.get(k).list.push(r);
+  });
+  const done = recs.filter(r => r.status === "selesai");
+  const totPun = recs.reduce((a, r) => a + (r.punishments || []).length, 0);
+  const totReps = recs.reduce((a, r) => a + (r.reps || 0), 0);
+  const totSecs = recs.reduce((a, r) => a + (r.secs || 0), 0);
+  $("#adminStats").innerHTML = [
+    [groups.size, "Pemain"], [done.length, "Game berjaya"], [totPun, "Hukuman"], [totReps, "Reps"], [totSecs, "Saat"]
+  ].map(([v, l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+  if (!recs.length) { $("#adminList").innerHTML = `<p class="center muted">Tiada rekod untuk tapisan ini.</p>`; return; }
+  $("#adminList").innerHTML = [...groups.values()].map(g => {
+    const ok = g.list.filter(r => r.status === "selesai").length;
+    const no = g.list.length - ok;
+    const pun = g.list.reduce((a, r) => a + (r.punishments || []).length, 0);
+    const reps = g.list.reduce((a, r) => a + (r.reps || 0), 0);
+    const secs = g.list.reduce((a, r) => a + (r.secs || 0), 0);
+    return `<details class="pl-card">
+      <summary>
+        <span class="pn">${esc(g.name)}</span>
+        <span>✅ ${ok} berjaya</span>${no ? `<span>⚠️ ${no} tak habis</span>` : ""}
+        <span>🏋️ ${pun} hukuman</span><span>💪 ${reps} reps</span><span>⏱ ${secs} s</span>
+        <span class="pm">Terakhir: ${esc(fmtTime(g.list[0].ts))}</span>
+      </summary>
+      <div class="rounds">${g.list.map(r => `
+        <div class="round">
+          <div class="rh">
+            <span class="badge ${r.status === "selesai" ? "ok" : "no"}">${r.status === "selesai" ? "✅ Berjaya" : "⚠️ Tak habis"}</span>
+            <b>${esc(r.word)}</b><span class="muted">${esc(r.category)}</span>
+            <span>❌ ${r.wrong} salah</span><span class="muted">${esc(fmtTime(r.ts))}</span>
+          </div>
+          <div class="pun">${(r.punishments || []).length
+            ? r.punishments.map(p => `<span>${esc(punText(p))}</span>`).join("")
+            : '<span style="border-color:var(--green);background:rgba(61,220,132,.15)">🌟 Tiada hukuman</span>'}</div>
+        </div>`).join("")}
+      </div>
+    </details>`;
+  }).join("");
+}
+["input", "change"].forEach(ev => {
+  $("#adminSearch").addEventListener(ev, renderAdmin);
+  $("#adminRange").addEventListener(ev, renderAdmin);
+  $("#adminDoneOnly").addEventListener(ev, renderAdmin);
+});
+$("#btnAdminReload").addEventListener("click", () => { sfx.click(); adminLoad(); });
+$("#btnAdminCsv").addEventListener("click", () => {
+  const rows = adminFiltered();
+  const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [["Masa", "Nama", "Kategori", "Perkataan", "Status", "Tekaan Salah", "Bil. Hukuman", "Reps", "Saat", "Senarai Hukuman"].map(q).join(",")]
+    .concat(rows.map(r => [fmtTime(r.ts), r.name, r.category, r.word, r.status, r.wrong, (r.punishments || []).length,
+      r.reps, r.secs, (r.punishments || []).map(punText).join("; ")].map(q).join(","))).join("\r\n");
+  try {
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `dicecise-rekod-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  } catch (e) { alert("Export gagal pada pelayar ini."); }
+});
+$("#btnAdminClear").addEventListener("click", () => {
+  if (!confirm("Padam SEMUA rekod dalam peranti ini? (Rekod di Google Sheet tidak terjejas.) Tindakan ini tak boleh diundur.")) return;
+  try { localStorage.removeItem(HIST_KEY); } catch (e) {}
+  adminLoad();
+});
 
 /* ---------------- Confetti ---------------- */
 function confetti() {
@@ -983,7 +1250,7 @@ function confetti() {
 
 /* ---------------- Physical keyboard ---------------- */
 document.addEventListener("keydown", e => {
-  if (e.target.tagName === "INPUT") return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
   const modalOpen = !$("#penalty").classList.contains("hidden");
   if (modalOpen) {
     if (e.key === "Enter" || e.key === " ") {
