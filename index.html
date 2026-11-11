@@ -23,6 +23,7 @@ const CONFIG = {
                           // disemak oleh Google Apps Script (ADMIN_KEY) dan nilai ini diabaikan.
   sheetUrl: "https://script.google.com/macros/s/AKfycbxzLVYIPiTLiitUJ7ZPDn_Mge_eybiNKmvdaTL13XNX0raSivHNWrHlNoGBM1tl_FYm-g/exec",         // (pilihan) URL Google Apps Script untuk kumpul rekod semua peranti.
                           // Kosongkan = rekod disimpan dalam peranti ini sahaja. Lihat README.
+  maxPlayers: 1,          // 1 = setiap orang main di phone sendiri. 2–4 = main bergilir di satu skrin.
   maxReps: 15,            // had maksimum reps
   secondsPerRep: 2,       // senaman berasaskan masa: reps × 2 saat
   vowels: "AEIOU",
@@ -142,7 +143,7 @@ button:disabled{cursor:not-allowed}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .icon-btn{
   background:var(--panel);border:2px solid rgba(255,255,255,.15);
-  padding:6px 14px;border-radius:999px;font-size:clamp(14px,1.8vmin+6px,24px);font-weight:700;
+  padding:6px 14px;border-radius:999px;font-size:clamp(14px,1.8vmin + 6px,24px);font-weight:700;
   min-height:44px;
 }
 .icon-btn:hover{background:var(--panel2)}
@@ -158,7 +159,7 @@ main{max-width:1200px;margin:0 auto;padding:16px 16px 40px}
 }
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  font-weight:800;font-size:clamp(20px,3vmin+6px,40px);
+  font-weight:800;font-size:clamp(20px,3vmin + 6px,40px);
   padding:.45em 1.2em;border-radius:999px;min-height:60px;
   background:var(--yellow);color:#1b1446;
   box-shadow:0 6px 0 #c79a00, 0 10px 24px rgba(0,0,0,.35);
@@ -169,7 +170,7 @@ main{max-width:1200px;margin:0 auto;padding:16px 16px 40px}
 .btn.pink{background:var(--pink);color:#fff;box-shadow:0 6px 0 #b8305b,0 10px 24px rgba(0,0,0,.35)}
 .btn.teal{background:var(--teal);color:#0d2a2a;box-shadow:0 6px 0 #149c84,0 10px 24px rgba(0,0,0,.35)}
 .btn.ghost{background:transparent;color:var(--ink);border:3px solid rgba(255,255,255,.35);box-shadow:none}
-.btn.small{font-size:clamp(16px,2vmin+6px,26px);min-height:48px}
+.btn.small{font-size:clamp(16px,2vmin + 6px,26px);min-height:48px}
 .center{text-align:center}
 h1,h2,h3{margin:.2em 0 .4em;line-height:1.1}
 h1{font-size:clamp(34px,7vmin,88px)}
@@ -195,7 +196,7 @@ h3{font-size:clamp(20px,3.4vmin,40px)}
   font-weight:800;color:#1b1446;font-size:1.1em;
 }
 .player-row input{
-  flex:1;min-width:0;font:inherit;font-weight:700;font-size:clamp(20px,3vmin+4px,36px);
+  flex:1;min-width:0;font:inherit;font-weight:700;font-size:clamp(20px,3vmin + 4px,36px);
   padding:10px 16px;border-radius:16px;border:3px solid rgba(255,255,255,.2);
   background:#fff;color:#1b1446;
 }
@@ -346,7 +347,7 @@ h3{font-size:clamp(20px,3.4vmin,40px)}
 .ex-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .ex-list li{background:rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;font-weight:700}
 .table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:clamp(16px,2.4vmin+4px,32px)}
+table{width:100%;border-collapse:collapse;font-size:clamp(16px,2.4vmin + 4px,32px)}
 th,td{padding:10px 12px;text-align:center;border-bottom:2px solid rgba(255,255,255,.1)}
 th{color:var(--ink2);font-weight:700}
 td:first-child,th:first-child{text-align:left}
@@ -430,7 +431,7 @@ tr.top td{color:var(--yellow);font-weight:800}
     </div>
     <div class="safety" role="note"><b>⚠️</b><span>Berhenti jika sesak nafas, pening atau sakit dada.</span></div>
     <div class="card players-form">
-      <h3>Nama Pemain <span class="muted" style="font-size:.6em">(1–4 orang, main bergilir)</span></h3>
+      <h3 id="nameTitle">Nama Anda</h3>
       <p class="muted" style="font-size:.8em;margin-top:0">Nama wajib diisi — rekod permainan &amp; senaman akan disimpan untuk semakan fisioterapis.</p>
       <div id="playerInputs"></div>
       <div class="form-actions">
@@ -448,7 +449,7 @@ tr.top td{color:var(--yellow);font-weight:800}
   <section id="screen-roll" class="hidden">
     <div class="scoreboard" data-scoreboard></div>
     <div class="turn-banner">
-      <h2>Giliran: <span class="who" id="rollWho"></span></h2>
+      <h2><span id="rollLabel">Giliran:</span> <span class="who" id="rollWho"></span></h2>
       <div class="cat-legend" id="catLegend"></div>
     </div>
     <div class="dice-stage">
@@ -713,7 +714,12 @@ function renderPlayerInputs() {
       <input type="text" maxlength="16" placeholder="Pemain ${i + 1}" value="${esc(n)}" data-i="${i}" aria-label="Nama pemain ${i + 1}">
       ${draftNames.length > 1 ? `<button class="rm" data-rm="${i}" aria-label="Buang pemain ${i + 1}">✖</button>` : '<span style="width:52px"></span>'}
     </div>`).join("");
-  $("#btnAddPlayer").classList.toggle("hidden", draftNames.length >= 4);
+  const maxP = Math.max(1, Math.min(4, CONFIG.maxPlayers || 1));
+  $("#btnAddPlayer").classList.toggle("hidden", draftNames.length >= maxP);
+  $("#nameTitle").innerHTML = maxP > 1
+    ? 'Nama Pemain <span class="muted" style="font-size:.6em">(1–' + maxP + ' orang, main bergilir)</span>' : "Nama Anda";
+  $$("#playerInputs .num, #playerInputs .player-row > span").forEach(n => n.classList.toggle("hidden", maxP === 1));
+  if (maxP === 1) $$("#playerInputs input").forEach(i => i.placeholder = "Taip nama anda");
 }
 $("#playerInputs").addEventListener("input", e => {
   if (e.target.dataset.i != null) { draftNames[+e.target.dataset.i] = e.target.value; $("#nameError").textContent = ""; }
@@ -726,7 +732,7 @@ $("#playerInputs").addEventListener("keydown", e => {
   if (e.key === "Enter") { e.preventDefault(); $("#btnStart").click(); }
 });
 $("#btnAddPlayer").addEventListener("click", () => {
-  if (draftNames.length < 4) {
+  if (draftNames.length < Math.min(4, CONFIG.maxPlayers || 1)) {
     draftNames.push(""); renderPlayerInputs();
     const ins = $$("#playerInputs input"); ins[ins.length - 1].focus();
   }
@@ -736,7 +742,7 @@ $("#btnStart").addEventListener("click", () => {
   const names = draftNames.map(n => n.trim().replace(/\s+/g, " "));
   const blank = names.findIndex(n => !n);
   if (blank >= 0) {
-    $("#nameError").textContent = `Sila isi nama Pemain ${blank + 1}.`;
+    $("#nameError").textContent = names.length > 1 ? `Sila isi nama Pemain ${blank + 1}.` : "Sila isi nama anda.";
     const ins = $$("#playerInputs input"); if (ins[blank]) ins[blank].focus();
     sfx.wrong(); return;
   }
@@ -801,6 +807,7 @@ exDice.fill(CONFIG.exercises.slice(0, 6), renderExFace);
 let busy = false;
 function goRoll() {
   $("#rollWho").textContent = state.players[state.turn].name;
+  $("#rollLabel").textContent = state.players.length > 1 ? "Giliran:" : "Pemain:";
   $("#rollWho").style.color = PLAYER_COLORS[state.turn];
   $("#catLegend").innerHTML = CONFIG.categories.map(c =>
     `<span class="cat-pill" style="background:${c.color}">${c.icon} ${esc(c.label)}</span>`).join("");
