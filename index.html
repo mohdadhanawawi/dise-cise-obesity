@@ -19,7 +19,8 @@
    - exercises: 10 muka Dadu Senaman. timed:true = dikira dalam saat.
    ===================================================================== */
 const CONFIG = {
-  adminPin: "1234",       // PIN Panel Admin — TUKAR sebelum guna
+  adminPin: "1234",       // PIN Panel Admin (mod peranti sahaja). Bila sheetUrl diisi, PIN
+                          // disemak oleh Google Apps Script (ADMIN_KEY) dan nilai ini diabaikan.
   sheetUrl: "",           // (pilihan) URL Google Apps Script untuk kumpul rekod semua peranti.
                           // Kosongkan = rekod disimpan dalam peranti ini sahaja. Lihat README.
   maxReps: 15,            // had maksimum reps
@@ -1113,9 +1114,20 @@ $("#btnAdminExit").addEventListener("click", () => {
   if (["roll", "summary"].includes(adminReturn) && state) return resume();
   show("start");
 });
-function adminLogin() {
+async function adminLogin() {
   const pin = $("#adminPin").value.trim();
-  if (pin !== String(CONFIG.adminPin)) { $("#adminErr").textContent = "PIN salah."; sfx.wrong(); return; }
+  const fail = msg => { $("#adminErr").textContent = msg; sfx.wrong(); };
+  if (!pin) return fail("Sila masukkan PIN.");
+  if (CONFIG.sheetUrl) {
+    // Mod Google Sheet: PIN disemak oleh Apps Script (PIN sebenar tidak ada dalam fail ini)
+    $("#adminErr").textContent = "⏳ Menyemak PIN...";
+    try {
+      const res = await fetch(CONFIG.sheetUrl + "?key=" + encodeURIComponent(pin), { cache: "no-store" });
+      const j = await res.json();
+      if (j.error) return fail("PIN salah.");
+    } catch (e) { return fail("Tak dapat sambung ke Google Sheet. Cuba lagi."); }
+    $("#adminErr").textContent = "";
+  } else if (pin !== String(CONFIG.adminPin)) return fail("PIN salah.");
   adminOk = true; adminPinUsed = pin; sfx.right();
   $("#adminLogin").classList.add("hidden");
   $("#adminBody").classList.remove("hidden");

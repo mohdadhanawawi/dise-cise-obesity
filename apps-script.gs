@@ -5,13 +5,13 @@
  * Cara pasang (guna komputer / mod desktop):
  * 1. Buat Google Sheet baharu.
  * 2. Extensions → Apps Script. Padam kod sedia ada, tampal SEMUA kod ini.
- * 3. Tukar ADMIN_KEY di bawah supaya SAMA dengan CONFIG.adminPin dalam index.html.
+ * 3. Tukar ADMIN_KEY di bawah kepada PIN rahsia anda (PIN ini untuk masuk Panel Admin).
  * 4. Deploy → New deployment → Type: Web app
  *      Execute as: Me   |   Who has access: Anyone
  *    Tekan Deploy, benarkan (Authorize) akses, salin "Web app URL".
  * 5. Tampal URL itu ke CONFIG.sheetUrl dalam index.html.
  */
-const ADMIN_KEY = '1234';
+const ADMIN_KEY = 'TUKAR-PIN-INI';
 const SHEET_NAME = 'Rekod';
 
 function sheet_() {
